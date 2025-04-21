@@ -1,0 +1,43 @@
+site_name: enve
+repo_name: aachick/enve
+repo_url: https://github.com/aachick/enve
+
+markdown_extensions:
+  - attr_list
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+nav:
+  - Index: index.md
+  - "API Reference": api_reference.md
+
+plugins:
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_overloads: false
+            show_source: false
+  - privacy
+  - search
+
+theme:
+  name: material
+  favicon: assets/logo.svg
+  features:
+    - content.code.copy
+    - toc.integrate
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+  logo: assets/logo.svg
+  palette:
+    primary: cyan
