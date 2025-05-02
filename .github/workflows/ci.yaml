@@ -18,7 +18,7 @@ common-steps: &common-steps
     with:
       cache-dependency-glob: "uv.lock"
       enable-cache: true
-      python-version: 3.10
+      python-version: "3.10"
       version: "0.7.2"
 
   - name: Install dependencies
@@ -60,7 +60,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.10, 3.11, 3.12, 3.13]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout code
