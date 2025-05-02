@@ -14,6 +14,8 @@
 
 An environment variable parser library with type hint and conversion support.
 
+The complete documentation is available [here](https://aachick.github.io/enve/).
+
 ## Usage
 
 `enve.get` is the main package function. It's essentially `os.getenv` on
