@@ -7,7 +7,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=for-the-badge)](https://github.com/astral-sh/uv)
 
 <div style="text-align: center;">
-    <img src="./docs/assets/enve.png" />
+    <img src="https://raw.githubusercontent.com/aachick/enve/main/docs/assets/enve.png" />
 </div>
 
 # enve
