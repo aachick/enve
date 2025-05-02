@@ -29,13 +29,13 @@ convert them to a desired data type.
 import enve
 
 
-ENVVAR = enve.get("ENVVAR")  # will be typed as `str`
-ENVVAR_STR = enve.get("ENVVAR", dtype=str)  # will be typed as `str`
-MY_SWITCH = enve.get("MY_SWITCH", dtype=bool)  # will be typed as `bool`
-HASH_SALT = enve.get("HASH_SALT", dtype=bytes)  # will be typed as `bytes`
-RANDOM_SEED = enve.get("RANDOM_SEED", dtype=int)  # will be typed as `int`
-MY_PI = enve.get("MY_PI", dtype=float)  # will be typed as `float`
-CUDA_VISIBLE_DEVICES = enve.get("CUDA_VISIBLE_DEVICES", dtype=list)  # will be typed as `list`
+ENVVAR = enve.get("ENVVAR")  # will be parsed and typed as `str`
+ENVVAR_STR = enve.get("ENVVAR", dtype=str)  # will be parsed and typed as `str`
+MY_SWITCH = enve.get("MY_SWITCH", dtype=bool)  # will be parsed and typed as `bool`
+HASH_SALT = enve.get("HASH_SALT", dtype=bytes)  # will be parsed and typed as `bytes`
+RANDOM_SEED = enve.get("RANDOM_SEED", dtype=int)  # will be parsed and typed as `int`
+MY_PI = enve.get("MY_PI", dtype=float)  # will be parsed and typed as `float`
+CUDA_VISIBLE_DEVICES = enve.get("CUDA_VISIBLE_DEVICES", dtype=list)  # will be parsed and typed as `list`
 ```
 
 Supported data types are `bool`, `bytes`, `float`, `int`, `str` (the default), and `list`.
