@@ -8,6 +8,9 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=for-the-badge)](https://github.com/astral-sh/uv)
 
+[![test](https://github.com/aachick/enve/actions/workflows/ci.yaml/badge.svg)](https://github.com/aachick/enve/actions/workflows/ci.yaml)
+[![codecov](https://codecov.io/gh/aachick/enve/graph/badge.svg?token=T7SPPN48OK)](https://codecov.io/gh/aachick/enve)
+
 <div style="text-align: center;">
     <img src="https://raw.githubusercontent.com/aachick/enve/main/docs/assets/enve.png" />
 </div>
