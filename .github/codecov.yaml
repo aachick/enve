@@ -3,3 +3,6 @@ coverage:
     project:
       default:
         threshold: 0.5%
+
+comment:
+  layout: " diff, flags, files"
