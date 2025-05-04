@@ -24,6 +24,7 @@
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _get_version
 
+from enve.parser import EnvError as EnvError
 from enve.parser import get as get
 
 

@@ -102,6 +102,7 @@ def test_get_envvar_with_default_factory(
     assert result == expected_value
 
 
+@pytest.mark.parametrize("dtype", [list, tuple])
 @pytest.mark.parametrize(
     ("str_value", "item_dtype", "expected_value"),
     [
@@ -113,27 +114,37 @@ def test_get_envvar_with_default_factory(
         ("foo", bytes, [b"foo"]),
     ],
 )
-def test_get_envvar_list(
-    monkeypatch: pytest.MonkeyPatch, str_value: str, item_dtype: Any, expected_value: Any
+def test_get_envvar_container_type(
+    monkeypatch: pytest.MonkeyPatch,
+    dtype: type[list | tuple],
+    str_value: str,
+    item_dtype: Any,
+    expected_value: Any,
 ) -> None:
-    """Test parsing list environment variables."""
+    """Test parsing list and tuple environment variables."""
     monkeypatch.setenv("ENVVAR_LIST", str_value)
 
-    result = enve.get("ENVVAR_LIST", dtype=list, item_dtype=item_dtype)
-    assert isinstance(result, list)
-    assert result == expected_value
+    result = enve.get("ENVVAR_LIST", dtype=dtype, item_dtype=item_dtype)
+    assert isinstance(result, dtype)
+    assert result == dtype(expected_value)
 
 
-def test_get_envvar_list_with_custom_item_sep(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test parsing list environment variables with a custom item separator."""
+@pytest.mark.parametrize("dtype", [list, tuple])
+def test_get_envvar_container_with_custom_item_sep(
+    monkeypatch: pytest.MonkeyPatch, dtype: type[list | tuple]
+) -> None:
+    """Test parsing list/tuple environment variables with a custom item separator."""
     monkeypatch.setenv("ENVVAR_LIST", "1;2;3")
 
-    result = enve.get("ENVVAR_LIST", dtype=list, item_dtype=int, item_sep=";")
-    assert isinstance(result, list)
-    assert result == [1, 2, 3]
+    result = enve.get("ENVVAR_LIST", dtype=dtype, item_dtype=int, item_sep=";")
+    assert isinstance(result, dtype)
+    assert result == dtype([1, 2, 3])
 
 
-def test_get_envvar_list_with_invalid_item_dtype(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("dtype", [list, tuple])
+def test_get_envvar_container_with_invalid_item_dtype(
+    monkeypatch: pytest.MonkeyPatch, dtype: type[list | tuple]
+) -> None:
     """Test that an invalid item dtype raises a TypeError."""
     invalid_item_dtype = frozenset
     expected_msg = (
@@ -143,7 +154,7 @@ def test_get_envvar_list_with_invalid_item_dtype(monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setenv("ENVVAR_LIST", "1,2,3")
     with pytest.raises(TypeError, match=re.escape(expected_msg)):
-        enve.get("ENVVAR_LIST", dtype=list, item_dtype=invalid_item_dtype)
+        enve.get("ENVVAR_LIST", dtype=dtype, item_dtype=invalid_item_dtype)
 
 
 @pytest.mark.parametrize("secret", ["ENVVAR", "envvar"])
@@ -200,7 +211,7 @@ def test_get_envvar_with_invalid_dtype(monkeypatch: pytest.MonkeyPatch) -> None:
     invalid_dtype = frozenset
     expected_msg = (
         f"Invalid type '{invalid_dtype}' for 'ENVVAR'."
-        f" Expected one of ({bool}, {bytes}, {float}, {int}, {str}, {list})."
+        f" Expected one of ({bool}, {bytes}, {float}, {int}, {str}, {list}, {tuple})."
     )
 
     monkeypatch.setenv("ENVVAR", "foo")

@@ -21,6 +21,14 @@ An environment variable parser library with type hint and conversion support.
 
 The complete documentation is available [here](https://aachick.github.io/enve/).
 
+## Installation
+
+Install `enve` (preferably in a virtual environment) with:
+
+```bash
+pip install enve
+```
+
 ## Usage
 
 ### Python
@@ -45,9 +53,10 @@ HASH_SALT = enve.get("HASH_SALT", dtype=bytes)  # will be parsed and typed as `b
 RANDOM_SEED = enve.get("RANDOM_SEED", dtype=int)  # will be parsed and typed as `int`
 MY_PI = enve.get("MY_PI", dtype=float)  # will be parsed and typed as `float`
 CUDA_VISIBLE_DEVICES = enve.get("CUDA_VISIBLE_DEVICES", dtype=list)  # will be parsed and typed as `list`
+CUDA_VISIBLE_DEVICES = enve.get("CUDA_VISIBLE_DEVICES", dtype=tuple)  # will be parsed and typed as `tuple`
 ```
 
-Supported data types are `bool`, `bytes`, `float`, `int`, `str` (the default), and `list`.
+Supported data types are `bool`, `bytes`, `float`, `int`, `str` (the default), `list` and `tuple`.
 
 In all these examples, a `ValueError` will be raised if the environment variable is not
 defined. To use a default value, set the `default` parameter accordingly. Note that the
@@ -77,6 +86,41 @@ import enve
 # 4. Raise a `ValueError` as no default is provided.
 MY_SECRET = enve.get("MY_SECRET", docker_secret=True)
 ```
+
+#### Improved error messages
+
+Rather than obtaining a sometimes annoyingly obscure error when accessing an
+environment variable, `enve.get` provides an arguably nicer error message.
+
+Using `os.environ` on a missing environment variable:
+
+```python
+>>> import os
+>>> os.environ["FOOBAR"]
+Traceback (most recent call last):
+  File "<python-input-2>", line 1, in <module>
+    os.environ["FOOBAR"]
+    ~~~~~~~~~~^^^^^^^^^^
+  File "<frozen os>", line 716, in __getitem__
+KeyError: 'FOOBAR'
+```
+
+Using `enve.get`:
+
+```python
+>>> import enve
+>>> enve.get("FOOBAR")
+Traceback (most recent call last):
+  File "<python-input-6>", line 1, in <module>
+    enve.get("FOOBAR")
+    ~~~~~~~~^^^^^^^^^^
+  File "enve/parser.py", line 638, in get
+    raise EnvError(err_msg)
+enve.parser.EnvError: Environment variable 'FOOBAR' is not set and no default or default_factory is provided.
+```
+
+Note that `enve.EnvError` exceptions inherit from `ValueError` and `KeyError` so they
+can be caught the same way as if you were using `os.environ`.
 
 ### CLI
 
