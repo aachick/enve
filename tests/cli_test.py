@@ -1,12 +1,13 @@
 """Test the CLI entrypoint for the enve library."""
 
+import json
 import os
 import subprocess as sp
 import sys
 
 import pytest
 
-from enve.cli import _get_docker_secret_value, main
+from enve.cli import _get_docker_secret_value
 
 
 CDIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +36,7 @@ def test_main_with_envvar() -> None:
     )
 
     assert pipe.returncode == 0, f"Return code: {pipe.returncode} (!= 0): {pipe.stderr}"
-    assert f"{env_var}={env_value}" == pipe.stdout
+    assert env_value == pipe.stdout
 
 
 def test_main_with_missing_envvar() -> None:
@@ -72,7 +73,7 @@ def test_main_with_piped_in_input() -> None:
     )
 
     assert pipe.returncode == 0, f"Return code: {pipe.returncode} (!= 0): {pipe.stderr}"
-    assert f"{env_var}={env_value}" == pipe.stdout
+    assert env_value == pipe.stdout
 
 
 def test_main_with_piped_output() -> None:
@@ -89,24 +90,47 @@ def test_main_with_piped_output() -> None:
         shell=True,
         text=True,
     )
-    assert env_var in output
+    assert env_value == output
 
 
-def test_main_with_missing_envvar_input() -> None:
-    """Test the main function with a missing environment variable."""
-    env = {"COVERAGE_PROCESS_START": "1"}
+@pytest.mark.parametrize("args", [[], ["--null"]])
+def test_main_print_all_envvars(args: list[str]) -> None:
+    """Test the main function printing of all envvars."""
+    env = {"COVERAGE_PROCESS_START": "1", "FOOBAR": "1"}
 
     pipe = sp.run(
-        [*BASE_CMD],
+        [*BASE_CMD, *args],
         capture_output=True,
         check=False,
         env=env,
         text=True,
     )
 
-    pipe_stderr = pipe.stderr
-    assert pipe.returncode == 1
-    assert pipe_stderr == "No environment variable specified.\n"
+    pipe_stdout = pipe.stdout.strip()
+    assert pipe.returncode == 0
+    for env_var, env_val in env.items():
+        assert f"{env_var}={env_val}" in pipe_stdout
+
+
+def test_main_print_all_envvars_to_json() -> None:
+    """Test the main function's print of all envvars in JSON format."""
+    env = {"COVERAGE_PROCESS_START": "1", "FOOBAR": "1"}
+
+    pipe = sp.run(
+        [*BASE_CMD, "--json"],
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+    )
+
+    pipe_stdout = pipe.stdout.strip()
+    assert pipe.returncode == 0
+    returned_json = json.loads(pipe_stdout)
+    assert isinstance(returned_json, dict)
+    for env_var, env_val in env.items():
+        assert env_var in returned_json
+        assert returned_json[env_var] == env_val
 
 
 @pytest.mark.parametrize(("value", "expected"), [(None, False), ("", True), ("FOOBAR", "FOOBAR")])

@@ -87,6 +87,9 @@ import enve
 MY_SECRET = enve.get("MY_SECRET", docker_secret=True)
 ```
 
+On Windows, the `C:\ProgramData\Docker\secrets` directory is used to search for
+Docker secrets.
+
 #### Improved error messages
 
 Rather than obtaining a sometimes annoyingly obscure error when accessing an
@@ -132,40 +135,50 @@ Some common usage examples are:
 
 ```bash
 $ FOOBAR=1 enve FOOBAR
-FOOBAR=1
+1
 
+# This will output an empty string.
 $ enve UNSET_VAR -d
-UNSET_VAR=
+
 
 $ enve UNSET_VAR -d default
-UNSET_VAR=default
+default
 
 # Also check if the var is a docker secret.
 $ enve UNSET_VAR -s
+
+# Print all variables in the current environment
+$ enve
 ```
 
 All `enve` command options are listed below:
 
 ```bash
-usage: enve [-h] [-d [DEFAULT]] [-s [DOCKER_SECRET]] [--version] [env_var]
+usage: enve [-h] [-d [DEFAULT]] [-s [DOCKER_SECRET]] [-0] [-j] [--version] [env_var]
 
 Print environment variables values without worrying about substitutions.
 
-positional arguments:
-  env_var               The environment variable to print
+Positional arguments:
+  env_var               The environment variable to print the value of. If unset, print all environment variables.
 
-options:
+Optional arguments:
   -h, --help            show this help message and exit
-  -d, --default [DEFAULT]
-                        The default value to use if the environment variable is not set. This can be
-                        used a boolean flag (i.e., this option can be set without a value). In this
-                        case, the default value will be an empty string if the environment variable
-                        is not set.
-  -s, --docker-secret [DOCKER_SECRET]
-                        If set, specify that the environment variable can also be a Docker secret.
-                        This can be used a boolean flag (i.e., this option can be set without a
-                        value). If set this way, a docker secret with the same name as the
-                        environment will be search for. If set with a value, the value will be used
-                        as the docker secret name.
   --version             show program's version number and exit
+
+Parser options:
+  -d, --default [DEFAULT]
+                        The default value to use if the environment variable is not set. This can be used a boolean flag
+                        (i.e., this option can be set without a value). In this case, the default value will be an empty
+                        string if the environment variable is not set.
+  -s, --docker-secret [DOCKER_SECRET]
+                        If set, specify that the environment variable can also be a Docker secret. This can be used a boolean
+                        flag (i.e., this option can be set without a value). If set this way, a docker secret with the same
+                        name as the environment will be search for. If set with a value, the value will be used as the docker
+                        secret name.
+
+Global environment options:
+  -0, --null            End each output line with a null character instead of a newline when printing all environment
+                        variables.
+  -j, --json            Output the environment variable as a JSON object. This is only used when printing all environment
+                        variables.
 ```
