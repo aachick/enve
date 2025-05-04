@@ -23,6 +23,8 @@ The complete documentation is available [here](https://aachick.github.io/enve/).
 
 ## Usage
 
+### Python
+
 `enve.get` is the main package function. It's essentially `os.getenv` on
 (arguably unnecessarily strong) steroids. It's advantage is that it will
 automatically validate the environment variable's data type based on what
@@ -74,4 +76,52 @@ import enve
 #    and the value will be returned.
 # 4. Raise a `ValueError` as no default is provided.
 MY_SECRET = enve.get("MY_SECRET", docker_secret=True)
+```
+
+### CLI
+
+Once pip-installed, the `enve` CLI command will be available for usage. This can
+be used to echo environment variable values without worrying about variable
+substitution (e.g., `$FOOBAR` vs. `${FOOBAR}` vs. `%FOOBAR%` vs. `$Env:FOOBAR`).
+
+Some common usage examples are:
+
+```bash
+$ FOOBAR=1 enve FOOBAR
+FOOBAR=1
+
+$ enve UNSET_VAR -d
+UNSET_VAR=
+
+$ enve UNSET_VAR -d default
+UNSET_VAR=default
+
+# Also check if the var is a docker secret.
+$ enve UNSET_VAR -s
+```
+
+All `enve` command options are listed below:
+
+```bash
+usage: enve [-h] [-d [DEFAULT]] [-s [DOCKER_SECRET]] [--version] [env_var]
+
+Print environment variables values without worrying about substitutions.
+
+positional arguments:
+  env_var               The environment variable to print
+
+options:
+  -h, --help            show this help message and exit
+  -d, --default [DEFAULT]
+                        The default value to use if the environment variable is not set. This can be
+                        used a boolean flag (i.e., this option can be set without a value). In this
+                        case, the default value will be an empty string if the environment variable
+                        is not set.
+  -s, --docker-secret [DOCKER_SECRET]
+                        If set, specify that the environment variable can also be a Docker secret.
+                        This can be used a boolean flag (i.e., this option can be set without a
+                        value). If set this way, a docker secret with the same name as the
+                        environment will be search for. If set with a value, the value will be used
+                        as the docker secret name.
+  --version             show program's version number and exit
 ```

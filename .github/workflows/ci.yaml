@@ -37,6 +37,9 @@ jobs:
       - name: Run mypy check
         run: uv run mypy src
 
+      - name: Check for typos
+        run: uv run codespell .github/ docs/ src/ tests/ README.md
+
   test:
     name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}

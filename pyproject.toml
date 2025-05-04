@@ -32,6 +32,7 @@ dynamic = ["version"]
 
 [dependency-groups]
 dev = [
+    "codespell==2.4.1",
     "mkdocs==1.6.1",
     "mkdocs-material==9.6.12",
     "mkdocstrings[python]==0.29.1",
@@ -48,14 +49,21 @@ Documentation = "https://aachick.github.io/enve"
 Repository = "https://github.com/aachick/enve"
 Issues = "https://github.com/aachick/enve/issues"
 
+[project.scripts]
+enve = "enve.cli:main"
+
 [tool.setuptools_scm]
 write_to = "src/enve/_version.py"
+
+[tool.codespell]
+skip = "*.png,*.svg"
 
 [tool.coverage.paths]
 source = ["src/"]
 
 [tool.coverage.report]
 exclude_lines = [
+    '# pragma: no cover',
     '@overload',
     'if TYPE_CHECKING:',
     'if __name__ == .__main__.:',
@@ -63,6 +71,7 @@ exclude_lines = [
 
 [tool.coverage.run]
 branch = true
+parallel = true
 
 [tool.mypy]
 python_version = "3.10"
@@ -76,6 +85,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 ignore = [
+    "D105",     # pydocstyle (missing docstring in magic method)
     "PLC0414",  # pylint (convention) (useless-import-alias)
     "PLR0911",  # pylint (refactor) (too many return statements)
     "PLR0912",  # pylint (refactor) (too many branches)

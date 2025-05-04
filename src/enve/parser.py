@@ -26,10 +26,50 @@ import warnings
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeAlias, TypeVar, cast, overload
+from threading import Lock
+from typing import TypeAlias, TypeVar, cast, overload
 
 
-UNSET = object()
+_lock = Lock()
+_registry: dict[str, "Sentinel"] = {}
+
+
+class Sentinel:
+    """
+    Create a unique sentinel object.
+
+    This is a stripped down version of the `Sentinel` class defined here:
+    https://github.com/taleinat/python-stdlib-sentinels/tree/main
+    """
+
+    _name: str
+    _module_name: str
+
+    def __new__(cls, name: str) -> "Sentinel":
+        """Create a new sentinel object with a unique name."""
+        name = str(name)
+        module_name = "enve.parser"
+
+        registry_key = f"{module_name}-{name}"
+        sentinel = _registry.get(registry_key)
+        if sentinel is not None:
+            return sentinel
+
+        sentinel = super().__new__(cls)
+        sentinel._name = name
+        sentinel._module_name = str(module_name)
+        with _lock:
+            return _registry.setdefault(registry_key, sentinel)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._name})"
+
+    def __reduce__(self) -> tuple[type, tuple[str, str]]:
+        return (self.__class__, (self._name, self._module_name))
+
+
+UNSET = Sentinel("UNSET")
+"""A sentinel value to indicate that a value is unset."""
 EnvType: TypeAlias = bool | bytes | float | int | str | list
 ItemType = TypeVar("ItemType", bound=bool | bytes | float | int | str)
 
@@ -113,7 +153,7 @@ def _get_envvar_value(envvar: str, *, docker_secret: bool | str = False) -> str 
 def get(
     envvar: str,
     *,
-    default: str = ...,
+    default: str | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: None = None,
     deprecated: bool = ...,
@@ -143,7 +183,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: bool = ...,
+    default: bool | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[bool] = bool,
     deprecated: bool = ...,
@@ -173,7 +213,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: int = ...,
+    default: int | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[int] = int,
     deprecated: bool = ...,
@@ -202,7 +242,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: float = ...,
+    default: float | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[float] = float,
     deprecated: bool = ...,
@@ -232,7 +272,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: str = ...,
+    default: str | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[str] = str,
     deprecated: bool = ...,
@@ -262,7 +302,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: bytes = ...,
+    default: bytes | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[bytes] = bytes,
     deprecated: bool = ...,
@@ -292,7 +332,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: list = ...,
+    default: list | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[list] = list,
     deprecated: bool = ...,
@@ -307,7 +347,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: list = ...,
+    default: list | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[list] = list,
     deprecated: bool = ...,
@@ -351,7 +391,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: Any | None = UNSET,
+    default: EnvType | Sentinel | None = UNSET,
     default_factory: Callable[[], EnvType] | None = None,
     dtype: type[EnvType] | None = None,
     deprecated: bool = False,
@@ -379,7 +419,7 @@ def get(
     ----------
     envvar : str
         The name of the environment variable to parse.
-    default : Any | None, default UNSET
+    default : EnvType | Sentinel | None, default UNSET
         The default value to return if the environment variable is not set.
         If UNSET, a ValueError will be raised if the environment variable is not set.
     default_factory : Callable[[], EnvType] | None, default None
@@ -501,7 +541,7 @@ def get(
     if default not in (UNSET, None):
         if not isinstance(default, dtype):
             err_msg = (
-                f"Default value '{default}' (type={type(default).__name__}) for '{envvar}'"
+                f"Default value '{default!r}' (type={type(default).__name__}) for '{envvar}'"
                 f" is not of type '{dtype.__name__}'."
             )
             raise TypeError(err_msg)
@@ -519,7 +559,7 @@ def get(
 
     value = _get_envvar_value(envvar, docker_secret=docker_secret)
     if value is UNSET:
-        if default is not UNSET:
+        if not isinstance(default, Sentinel):
             return default
         if default_factory is not None:
             return default_factory()

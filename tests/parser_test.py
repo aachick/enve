@@ -40,8 +40,6 @@ ENVVARS = {
     "ENVVAR_FLOAT": (3.14, float),
     "ENVVAR_STR": ("bar", str),
 }
-OS_ENVIRON_DICT = {key: str(value) for key, (value, _) in ENVVARS.items()}
-OS_ENVIRON_MODULE = "enve.parser.os.environ"
 
 
 @pytest.mark.parametrize("envvar", list(ENVVARS.keys()))
