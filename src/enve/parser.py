@@ -26,11 +26,67 @@ import warnings
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeAlias, TypeVar, cast, overload
+from threading import Lock
+from typing import TypeAlias, TypeVar, cast, overload
 
 
-UNSET = object()
-EnvType: TypeAlias = bool | bytes | float | int | str | list
+class EnvError(KeyError, ValueError):
+    """
+    An environment variable parsing error.
+
+    This class inherits from `KeyError` and `ValueError` in an attempt
+    to be catchable by more traditional exception handling code.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+    def __str__(self) -> str:
+        return self.message
+
+
+_lock = Lock()
+_registry: dict[str, "Sentinel"] = {}
+
+
+class Sentinel:
+    """
+    Create a unique sentinel object.
+
+    This is a stripped down version of the `Sentinel` class defined here:
+    https://github.com/taleinat/python-stdlib-sentinels/tree/main
+    """
+
+    _name: str
+    _module_name: str
+
+    def __new__(cls, name: str) -> "Sentinel":
+        """Create a new sentinel object with a unique name."""
+        name = str(name)
+        module_name = "enve.parser"
+
+        registry_key = f"{module_name}-{name}"
+        sentinel = _registry.get(registry_key)
+        if sentinel is not None:
+            return sentinel
+
+        sentinel = super().__new__(cls)
+        sentinel._name = name
+        sentinel._module_name = str(module_name)
+        with _lock:
+            return _registry.setdefault(registry_key, sentinel)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._name})"
+
+    def __reduce__(self) -> tuple[type, tuple[str, str]]:
+        return (self.__class__, (self._name, self._module_name))
+
+
+UNSET = Sentinel("UNSET")
+"""A sentinel value to indicate that a value is unset."""
+EnvType: TypeAlias = bool | bytes | float | int | str | list | tuple
 ItemType = TypeVar("ItemType", bound=bool | bytes | float | int | str)
 
 
@@ -46,7 +102,7 @@ def _parse_bool(envvar: str, value: str) -> bool:
         f"Environment variable '{envvar}' is not a valid boolean value. "
         f"Expected one of {truthy_values + falsy_values}."
     )
-    raise ValueError(err_msg)
+    raise EnvError(err_msg)
 
 
 def _parse_float(envvar: str, value: str) -> float:
@@ -54,7 +110,7 @@ def _parse_float(envvar: str, value: str) -> float:
         float_value = float(value)
     except (TypeError, ValueError):
         err_msg = f"Environment variable '{envvar}' is not a valid float: '{value}'"
-        raise ValueError(err_msg) from None
+        raise EnvError(err_msg) from None
     return float_value
 
 
@@ -63,7 +119,7 @@ def _parse_int(envvar: str, value: str) -> int:
         int_value = int(value)
     except (TypeError, ValueError):
         err_msg = f"Environment variable '{envvar}' is not a valid integer: '{value}'"
-        raise ValueError(err_msg) from None
+        raise EnvError(err_msg) from None
     return int_value
 
 
@@ -113,7 +169,7 @@ def _get_envvar_value(envvar: str, *, docker_secret: bool | str = False) -> str 
 def get(
     envvar: str,
     *,
-    default: str = ...,
+    default: str | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: None = None,
     deprecated: bool = ...,
@@ -143,7 +199,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: bool = ...,
+    default: bool | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[bool] = bool,
     deprecated: bool = ...,
@@ -173,7 +229,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: int = ...,
+    default: int | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[int] = int,
     deprecated: bool = ...,
@@ -202,7 +258,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: float = ...,
+    default: float | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[float] = float,
     deprecated: bool = ...,
@@ -232,7 +288,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: str = ...,
+    default: str | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[str] = str,
     deprecated: bool = ...,
@@ -262,7 +318,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: bytes = ...,
+    default: bytes | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[bytes] = bytes,
     deprecated: bool = ...,
@@ -292,7 +348,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: list = ...,
+    default: list | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[list] = list,
     deprecated: bool = ...,
@@ -307,7 +363,7 @@ def get(
 def get(
     envvar: str,
     *,
-    default: list = ...,
+    default: list | Sentinel = ...,
     default_factory: Callable[[], EnvType] | None = ...,
     dtype: type[list] = list,
     deprecated: bool = ...,
@@ -348,10 +404,70 @@ def get(
 ) -> list[ItemType] | None: ...
 
 
+@overload
 def get(
     envvar: str,
     *,
-    default: Any | None = UNSET,
+    default: tuple | Sentinel = ...,
+    default_factory: Callable[[], EnvType] | None = ...,
+    dtype: type[tuple] = tuple,
+    deprecated: bool = ...,
+    deprecated_msg: str = ...,
+    docker_secret: bool | str = ...,
+    item_dtype: None = ...,
+    item_sep: str = ...,
+) -> tuple[str, ...]: ...
+
+
+@overload
+def get(
+    envvar: str,
+    *,
+    default: tuple | Sentinel = ...,
+    default_factory: Callable[[], EnvType] | None = ...,
+    dtype: type[tuple] = tuple,
+    deprecated: bool = ...,
+    deprecated_msg: str = ...,
+    docker_secret: bool | str = ...,
+    item_dtype: type[ItemType] = ...,
+    item_sep: str = ...,
+) -> tuple[ItemType, ...]: ...
+
+
+@overload
+def get(
+    envvar: str,
+    *,
+    default: None = None,
+    default_factory: Callable[[], EnvType] | None = ...,
+    dtype: type[tuple],
+    deprecated: bool = ...,
+    deprecated_msg: str = ...,
+    docker_secret: bool | str = ...,
+    item_dtype: None = ...,
+    item_sep: str = ...,
+) -> tuple[str, ...] | None: ...
+
+
+@overload
+def get(
+    envvar: str,
+    *,
+    default: None = None,
+    default_factory: Callable[[], EnvType] | None = ...,
+    dtype: type[tuple],
+    deprecated: bool = ...,
+    deprecated_msg: str = ...,
+    docker_secret: bool | str = ...,
+    item_dtype: type[ItemType] = ...,
+    item_sep: str = ...,
+) -> tuple[ItemType, ...] | None: ...
+
+
+def get(
+    envvar: str,
+    *,
+    default: EnvType | Sentinel | None = UNSET,
     default_factory: Callable[[], EnvType] | None = None,
     dtype: type[EnvType] | None = None,
     deprecated: bool = False,
@@ -361,7 +477,7 @@ def get(
     item_dtype: type[ItemType] | None = None,
 ) -> EnvType | None:
     """
-    Parse an environment variable into a bool, bytes, float, int, str, or a list.
+    Parse an environment variable into a bool, bytes, float, int, str, list or a tuple.
 
     Rather than using `os.environ.get` or `os.getenv`, this function
     provides a convenient way to parse environment variables into a
@@ -379,16 +495,17 @@ def get(
     ----------
     envvar : str
         The name of the environment variable to parse.
-    default : Any | None, default UNSET
+    default : EnvType | Sentinel | None, default UNSET
         The default value to return if the environment variable is not set.
         If UNSET, a ValueError will be raised if the environment variable is not set.
     default_factory : Callable[[], EnvType] | None, default None
         A callable that returns the default value if the environment variable is not set.
         If None, this will be ignored. This cannot be used alongside `default`. This should
         be used instead of `default` when the expected return type is a list.
-    dtype : type[bool | bytes | float | int | str] | None, default None
+    dtype : type[bool | bytes | float | int | str | list | tuple] | None, default None
         The data type to convert the environment variable to. If None, the value
-        will be returned as a string. Supported types are bool, bytes, float, int, str, and list.
+        will be returned as a string. Supported types are bool, bytes, float, int, str,
+        list, and tuple.
     deprecated : bool, default False
         If True, and the environment variable is set, a DeprecationWarning will be raised.
     deprecated_msg : str, default ""
@@ -408,7 +525,7 @@ def get(
 
     Returns
     -------
-    bool |  bytes | float | int | str | list | None
+    bool |  bytes | float | int | str | list | tuple | None
         The parsed value of the environment variable, converted to the specified type.
         If the environment variable is not set and no default is provided, a ValueError
         will be raised. If the environment variable is set but cannot be converted to
@@ -417,10 +534,10 @@ def get(
     Raises
     ------
     TypeError
-        If the dtype is not one of (bool, bytes, float, int, str, list).
+        If the dtype is not one of (bool, bytes, float, int, str, list, tuple).
         If the default value is not of the specified dtype.
         If the item_dtype is not one of (bool, bytes, float, int, str).
-    ValueError
+    EnvError
         If the environment variable is not set and no default is provided.
         If both default and default_factory are provided.
         If the environment variable cannot be converted to the specified dtype.
@@ -485,9 +602,15 @@ def get(
     >>> os.environ["ENV_VAR"] = "1,2,3"
     >>> enve.get("ENV_VAR", dtype=list, item_dtype=int)
     [1, 2, 3]
+
+    Parsing an environment variable as a tuple of integers:
+
+    >>> os.environ["ENV_VAR"] = "1,2,3"
+    >>> enve.get("ENV_VAR", dtype=tuple, item_dtype=int)
+    (1, 2, 3)
     """
     dtype = str if dtype is None else dtype
-    accepted_dtypes = (bool, bytes, float, int, str, list)
+    accepted_dtypes = (bool, bytes, float, int, str, list, tuple)
     if dtype not in accepted_dtypes:
         err_msg = f"Invalid type '{dtype}' for '{envvar}'. Expected one of {accepted_dtypes}."
         raise TypeError(err_msg)
@@ -496,12 +619,12 @@ def get(
         err_msg = (
             f"Cannot use both 'default' and 'default_factory' for '{envvar}'. Use one or the other."
         )
-        raise ValueError(err_msg)
+        raise EnvError(err_msg)
 
     if default not in (UNSET, None):
         if not isinstance(default, dtype):
             err_msg = (
-                f"Default value '{default}' (type={type(default).__name__}) for '{envvar}'"
+                f"Default value '{default!r}' (type={type(default).__name__}) for '{envvar}'"
                 f" is not of type '{dtype.__name__}'."
             )
             raise TypeError(err_msg)
@@ -519,7 +642,7 @@ def get(
 
     value = _get_envvar_value(envvar, docker_secret=docker_secret)
     if value is UNSET:
-        if default is not UNSET:
+        if not isinstance(default, Sentinel):
             return default
         if default_factory is not None:
             return default_factory()
@@ -528,7 +651,7 @@ def get(
             f"Environment variable '{envvar}' is not set and no default"
             " or default_factory is provided."
         )
-        raise ValueError(err_msg)
+        raise EnvError(err_msg)
 
     value = cast(str, value)
 
@@ -551,5 +674,11 @@ def get(
             return values
         values = _parse_list(envvar, values, item_dtype)
         return cast(list[ItemType], values)
+    elif dtype is tuple:
+        values = value.split(item_sep)
+        if item_dtype is None:
+            return tuple(values)
+        values = _parse_list(envvar, values, item_dtype)
+        return cast(tuple[ItemType, ...], tuple(values))
     else:  # dtype is str
         return value

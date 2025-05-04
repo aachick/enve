@@ -86,6 +86,24 @@ TYPING_TO_REVEAL = {
     # list + bytes
     "get('a', dtype=list, item_dtype=bytes)": "builtins.list[builtins.bytes]",
     "get('a', default=None, dtype=list, item_dtype=bytes)": "Union[builtins.list[builtins.bytes], None]",  # noqa: E501
+    # tuple + None
+    "get('a', dtype=tuple)": "builtins.tuple[builtins.str, ...]",
+    "get('a', default=None, dtype=tuple)": "Union[builtins.tuple[builtins.str, ...], None]",
+    # tuple + str
+    "get('a', dtype=tuple, item_dtype=str)": "builtins.tuple[builtins.str, ...]",
+    "get('a', default=None, dtype=tuple, item_dtype=str)": "Union[builtins.tuple[builtins.str, ...], None]",  # noqa: E501
+    # tuple + int
+    "get('a', dtype=tuple, item_dtype=int)": "builtins.tuple[builtins.int, ...]",
+    "get('a', default=None, dtype=tuple, item_dtype=int)": "Union[builtins.tuple[builtins.int, ...], None]",  # noqa: E501
+    # tuple + float
+    "get('a', dtype=tuple, item_dtype=float)": "builtins.tuple[builtins.float, ...]",
+    "get('a', default=None, dtype=tuple, item_dtype=float)": "Union[builtins.tuple[builtins.float, ...], None]",  # noqa: E501
+    # tuple + bool
+    "get('a', dtype=tuple, item_dtype=bool)": "builtins.tuple[builtins.bool, ...]",
+    "get('a', default=None, dtype=tuple, item_dtype=bool)": "Union[builtins.tuple[builtins.bool, ...], None]",  # noqa: E501
+    # tuple + bytes
+    "get('a', dtype=tuple, item_dtype=bytes)": "builtins.tuple[builtins.bytes, ...]",
+    "get('a', default=None, dtype=tuple, item_dtype=bytes)": "Union[builtins.tuple[builtins.bytes, ...], None]",  # noqa: E501
 }
 
 
@@ -111,5 +129,5 @@ def test_mypy_revelations(code: str, mypy_revelations: dict[str, str]) -> None:
     expected_type = TYPING_TO_REVEAL[code]
     revealed_type = mypy_revelations[code]
 
-    err_msg = f"Expected '{expected_type}', got '{revealed_type}': {code}"
+    err_msg = f"{code}: Expected '{expected_type}', got '{revealed_type}'"
     assert revealed_type == expected_type, err_msg
