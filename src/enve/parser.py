@@ -152,15 +152,25 @@ def _get_envvar_value(envvar: str, *, docker_secret: bool | str = False) -> str 
 
     # `value` is UNSET, so we check if the envvar is a docker secret.
     if docker_secret is True:
-        secrets_paths = (Path(f"/run/secrets/{envvar}"), Path(f"/run/secrets/{envvar.lower()}"))
+        secrets_paths = (
+            Path(f"/run/secrets/{envvar}"),
+            Path(f"/run/secrets/{envvar.lower()}"),
+            Path(f"C:\\ProgramData\\Docker\\secrets\\{envvar}"),
+            Path(f"C:\\ProgramData\\Docker\\secrets\\{envvar.lower()}"),
+        )
         for path in secrets_paths:
             if path.exists():
                 value = path.read_text()
                 break
     elif isinstance(docker_secret, str):
-        path = Path(f"/run/secrets/{docker_secret}")
-        if path.exists():
-            value = path.read_text()
+        paths = (
+            Path(f"/run/secrets/{docker_secret}"),
+            Path(f"C:\\ProgramData\\Docker\\secrets\\{envvar}"),
+        )
+        for path in paths:
+            if path.exists():
+                value = path.read_text()
+                break
 
     return value
 
@@ -585,7 +595,15 @@ def get(
     >>> enve.get("ENV_VAR", dtype=int)
     42
 
-    Parsing an environment variable with a default value:
+    Parsing an unset environment variable:
+
+    >>> _ = os.environ.pop("ENV_VAR", None)
+    >>> enve.get("ENV_VAR")
+    Traceback (most recent call last):
+        ...
+    enve.parser.EnvError: Environment variable 'ENV_VAR' is not set and no default or default_factory is provided.
+
+    Parsing an unset environment variable with a default value:
 
     >>> _ = os.environ.pop("ENV_VAR", None)
     >>> enve.get("ENV_VAR", default="default_value")
@@ -608,7 +626,7 @@ def get(
     >>> os.environ["ENV_VAR"] = "1,2,3"
     >>> enve.get("ENV_VAR", dtype=tuple, item_dtype=int)
     (1, 2, 3)
-    """
+    """  # noqa: E501
     dtype = str if dtype is None else dtype
     accepted_dtypes = (bool, bytes, float, int, str, list, tuple)
     if dtype not in accepted_dtypes:
