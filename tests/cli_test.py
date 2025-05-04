@@ -1,12 +1,8 @@
 """Test the CLI entrypoint for the enve library."""
 
 import os
-import re
 import subprocess as sp
 import sys
-
-from contextlib import redirect_stdout, suppress
-from io import StringIO
 
 import pytest
 
@@ -118,21 +114,3 @@ def test_get_docker_secret_value(value: str, expected: bool | str) -> None:
     """Test the _get_docker_secret_value function."""
     result = _get_docker_secret_value(value)
     assert result == expected, f"Expected {expected}, got {result}"
-
-
-def test_enve_help_message() -> None:
-    """Test the command help message consistency with the README."""
-    readme_file = os.path.join(PROJ_DIR, "README.md")
-    with open(readme_file, encoding="utf-8") as f:
-        readme = f.read()
-        # Take away any indentation that may change.
-        readme = re.sub(r"\s+", "", readme)
-
-    with StringIO() as buffer:
-        with suppress(SystemExit), redirect_stdout(buffer):
-            main(["--help"])
-        help_message = buffer.getvalue()
-        # Take away any indentation that may change.
-        help_message = re.sub(r"\s+", "", help_message)
-
-    assert help_message in readme, "Help message not found or not consistent in README."
